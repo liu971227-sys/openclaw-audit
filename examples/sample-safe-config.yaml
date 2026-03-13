@@ -1,0 +1,17 @@
+version: 2026.3.1
+gateway:
+  bind: loopback
+  auth:
+    enabled: true
+    token: ${OPENCLAW_AUTH_TOKEN}
+  controlUi:
+    allowInsecureAuth: false
+    dangerouslyDisableDeviceAuth: false
+  trustedProxies:
+    - 127.0.0.1/32
+  allowUsers:
+    - alice@example.com
+tools:
+  elevated: false
+  sandbox: enabled
+plugins: []

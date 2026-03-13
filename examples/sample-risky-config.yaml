@@ -1,0 +1,16 @@
+version: 2026.2.24
+gateway:
+  bind: 0.0.0.0
+  auth:
+    enabled: false
+    password: short
+  controlUi:
+    allowInsecureAuth: true
+    dangerouslyDisableDeviceAuth: true
+  trustedProxies:
+    - 0.0.0.0/0
+tools:
+  elevated: true
+  sandbox: disabled
+plugins:
+  - name: community-risky-plugin
