@@ -2,13 +2,13 @@
 
 Local security audit for OpenClaw.
 
-`openclaw-audit` scans a local OpenClaw installation for exposed gateways, unsafe authentication, risky proxy settings, weak filesystem permissions, browser-control exposure, and possible secret leakage.
+`openclaw-audit` scans a local OpenClaw installation for exposed gateways, unsafe authentication, risky proxy settings, weak filesystem permissions, browser-control exposure, risky state-directory placement, and possible secret leakage.
 
 It runs locally and does not upload your configs, logs, or scan results.
 
 ## Why
 
-Recent OpenClaw security issues have shown that risk is not limited to public exposure. A deployment can still be unsafe because of weak local auth, dangerous Control UI settings, over-trusted proxies, browser SSRF posture, unsafe external-content bypasses, leaked tokens in logs or session transcripts, or overly broad tool permissions.
+Recent OpenClaw security issues have shown that risk is not limited to public exposure. A deployment can still be unsafe because of weak local auth, dangerous Control UI settings, over-trusted proxies, browser SSRF posture, unsafe external-content bypasses, leaked tokens in logs or session transcripts, or sensitive state stored in synced folders or hidden behind symlinks.
 
 `openclaw-audit` is designed to catch these problems early and give clear remediation steps.
 
@@ -25,6 +25,7 @@ Included:
 - browser SSRF, remote CDP, and relay checks
 - unsafe external-content bypass checks
 - filesystem permission checks
+- state_dir, credentials path, symlink, and synced-folder checks
 - secrets leakage scan across config, sessions, and logs
 - tool blast-radius checks
 - plugin trust checks

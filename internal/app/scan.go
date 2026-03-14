@@ -84,7 +84,7 @@ func runScan(args []string, stdout, stderr io.Writer) int {
 	findings = append(findings, audit.RunTrustedProxyAuthAudit(loadedConfig)...)
 	findings = append(findings, audit.RunBrowserAudit(loadedConfig)...)
 	findings = append(findings, audit.RunUnsafeContentAudit(loadedConfig)...)
-	findings = append(findings, audit.RunFilesystemAudit(discovery.ConfigPath)...)
+	findings = append(findings, audit.RunFilesystemAudit(loadedConfig)...)
 	findings = append(findings, audit.RunSecretsAudit(loadedConfig, discovery.LogPaths)...)
 	findings = append(findings, audit.RunToolsAudit(loadedConfig)...)
 	findings = append(findings, audit.RunPluginsAudit(loadedConfig)...)
