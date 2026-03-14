@@ -14,7 +14,7 @@ Recent OpenClaw security issues have shown that risk is not limited to public ex
 
 ## Scope
 
-`v0.1` focuses on local single-node OpenClaw audits.
+`v0.1` focuses on local single-node OpenClaw audits and guardrail generation.
 
 Included:
 - configuration audit
@@ -33,6 +33,7 @@ Included:
 - terminal output
 - JSON output
 - optional HTML report
+- `harden` command that generates a Caddy reverse proxy config and a Markdown hardening guide
 
 Not included:
 - automatic remediation
@@ -68,7 +69,7 @@ openclaw-audit scan
 ### Scan a specific config
 
 ```bash
-openclaw-audit scan --config ~/.openclaw/config.yaml
+openclaw-audit scan --config ~/.openclaw/openclaw.json
 ```
 
 ### Scan with a specific log directory
@@ -88,6 +89,16 @@ openclaw-audit scan --format json
 ```bash
 openclaw-audit scan --report report.html
 ```
+
+### Generate hardening artifacts
+
+```bash
+openclaw-audit harden --config ~/.openclaw/openclaw.json --site openclaw.example.com
+```
+
+This creates:
+- `dist/hardening/Caddyfile`
+- `dist/hardening/HARDENING.md`
 
 ## Example Output
 
