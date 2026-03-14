@@ -159,6 +159,7 @@ func runHarden(args []string, stdout, stderr io.Writer) int {
 
 	caddyfilePath := filepath.Join(options.outputDir, "Caddyfile")
 	guidePath := filepath.Join(options.outputDir, "HARDENING.md")
+	fixPreviewPath := filepath.Join(options.outputDir, "openclaw.fix-preview.json")
 	if err := os.WriteFile(caddyfilePath, []byte(artifacts.Caddyfile), 0o644); err != nil {
 		_, _ = fmt.Fprintf(stderr, "write Caddyfile: %v\n", err)
 		return 2
@@ -167,10 +168,15 @@ func runHarden(args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintf(stderr, "write hardening guide: %v\n", err)
 		return 2
 	}
+	if err := os.WriteFile(fixPreviewPath, []byte(artifacts.FixPreviewJSON), 0o644); err != nil {
+		_, _ = fmt.Fprintf(stderr, "write fix preview: %v\n", err)
+		return 2
+	}
 
 	_, _ = fmt.Fprintf(stdout, "Generated hardening artifacts for %s\n", discovery.ConfigPath)
 	_, _ = fmt.Fprintf(stdout, "- %s\n", caddyfilePath)
 	_, _ = fmt.Fprintf(stdout, "- %s\n", guidePath)
+	_, _ = fmt.Fprintf(stdout, "- %s\n", fixPreviewPath)
 	_, _ = fmt.Fprintf(stdout, "Current scan score: %d/100 (%s)\n", result.Score, result.RiskLevel)
 	if options.passwordHash == harden.PasswordHashPlaceholder {
 		_, _ = fmt.Fprintln(stdout, "Replace the placeholder password hash in the generated Caddyfile with: caddy hash-password --plaintext 'change-me-now'")

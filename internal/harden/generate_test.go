@@ -1,6 +1,7 @@
 package harden
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -21,5 +22,28 @@ func TestGenerateIncludesProxyHeadersAndAuth(t *testing.T) {
 	}
 	if !strings.Contains(artifacts.Guide, "OpenClaw Hardening Guide") {
 		t.Fatalf("expected generated guide heading")
+	}
+}
+
+func TestGenerateIncludesFixPreview(t *testing.T) {
+	artifacts := Generate(
+		config.LoadedConfig{Path: "/tmp/openclaw.json"},
+		types.ScanResult{Findings: []types.Finding{{ID: "proxy.trusted_proxies_broad"}, {ID: "content.allow_unsafe_external_content"}}},
+		Options{},
+	)
+
+	var preview FixPreview
+	if err := json.Unmarshal([]byte(artifacts.FixPreviewJSON), &preview); err != nil {
+		t.Fatalf("unmarshal fix preview: %v", err)
+	}
+	gateway, ok := preview.Suggested["gateway"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected gateway section in fix preview")
+	}
+	if gateway["bind"] != "127.0.0.1" {
+		t.Fatalf("expected bind fix to be present")
+	}
+	if _, ok := preview.Suggested["hooks"].(map[string]any); !ok {
+		t.Fatalf("expected hook fix preview when unsafe external content is found")
 	}
 }

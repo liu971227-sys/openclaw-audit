@@ -1,6 +1,7 @@
 package harden
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,7 @@ const (
 	DefaultSiteAddress      = "openclaw.example.com"
 	DefaultUpstreamAddress  = "127.0.0.1:18789"
 	PasswordHashPlaceholder = "REPLACE_WITH_CADDY_HASH"
+	DefaultSafeStateDir     = "~/.openclaw"
 )
 
 type Options struct {
@@ -23,15 +25,25 @@ type Options struct {
 }
 
 type Artifacts struct {
-	Caddyfile string
-	Guide     string
+	Caddyfile      string
+	Guide          string
+	FixPreviewJSON string
+}
+
+type FixPreview struct {
+	SourceConfig string         `json:"sourceConfig"`
+	Summary      []string       `json:"summary"`
+	Suggested    map[string]any `json:"suggestedConfig"`
 }
 
 func Generate(loaded config.LoadedConfig, result types.ScanResult, options Options) Artifacts {
 	normalized := normalizeOptions(options)
+	preview := buildFixPreview(loaded, result)
+	previewJSON, _ := json.MarshalIndent(preview, "", "  ")
 	return Artifacts{
-		Caddyfile: renderCaddyfile(normalized),
-		Guide:     renderGuide(loaded, result, normalized),
+		Caddyfile:      renderCaddyfile(normalized),
+		Guide:          renderGuide(loaded, result, normalized),
+		FixPreviewJSON: string(previewJSON),
 	}
 }
 
@@ -80,6 +92,7 @@ func renderGuide(loaded config.LoadedConfig, result types.ScanResult, options Op
 	builder.WriteString(fmt.Sprintf("Generated from `%s` on %s.\n\n", filepath.Clean(loaded.Path), result.GeneratedAtUTC))
 	builder.WriteString("## Protective Artifacts\n\n")
 	builder.WriteString("- `Caddyfile`: basic-auth protected reverse proxy in front of a loopback OpenClaw gateway.\n")
+	builder.WriteString("- `openclaw.fix-preview.json`: a non-destructive suggested config draft that shows how to move the riskiest settings toward a safer baseline.\n")
 	builder.WriteString("- This setup is intended as an outer guardrail, not a replacement for OpenClaw's own token or password auth.\n\n")
 	builder.WriteString("## Recommended Deployment Pattern\n\n")
 	builder.WriteString(fmt.Sprintf("1. Keep OpenClaw bound to loopback and serve the Control UI locally on `%s`.\n", DefaultUpstreamAddress))
@@ -101,25 +114,67 @@ func renderGuide(loaded config.LoadedConfig, result types.ScanResult, options Op
 		}
 	}
 	builder.WriteString("\n## Suggested OpenClaw Config Direction\n\n")
-	builder.WriteString("```json\n")
-	builder.WriteString("{\n")
-	builder.WriteString("  \"gateway\": {\n")
-	builder.WriteString("    \"bind\": \"127.0.0.1\",\n")
-	builder.WriteString("    \"controlUi\": {\n")
-	builder.WriteString("      \"allowInsecureAuth\": false,\n")
-	builder.WriteString("      \"dangerouslyDisableDeviceAuth\": false\n")
-	builder.WriteString("    }\n")
-	builder.WriteString("  },\n")
-	builder.WriteString("  \"fs\": {\n")
-	builder.WriteString("    \"state_dir\": \"~/.openclaw\"\n")
-	builder.WriteString("  }\n")
-	builder.WriteString("}\n")
-	builder.WriteString("```\n\n")
+	builder.WriteString("Use `openclaw.fix-preview.json` as a draft, then merge the relevant pieces into your real OpenClaw config after review.\n\n")
 	builder.WriteString("## Caddy Notes\n\n")
 	builder.WriteString("- Replace `REPLACE_WITH_CADDY_HASH` with the output of `caddy hash-password --plaintext 'change-me-now'`.\n")
 	builder.WriteString("- Keep the upstream on loopback and use Caddy only as the public-facing layer.\n")
 	builder.WriteString("- OpenClaw's dashboard and WebSocket auth still apply behind the proxy.\n")
 	return builder.String()
+}
+
+func buildFixPreview(loaded config.LoadedConfig, result types.ScanResult) FixPreview {
+	suggested := map[string]any{
+		"gateway": map[string]any{
+			"bind": "127.0.0.1",
+			"controlUi": map[string]any{
+				"allowInsecureAuth":            false,
+				"dangerouslyDisableDeviceAuth": false,
+			},
+			"auth": map[string]any{
+				"enabled": true,
+			},
+		},
+		"fs": map[string]any{
+			"state_dir": DefaultSafeStateDir,
+		},
+		"browser": map[string]any{
+			"evaluateEnabled": false,
+			"ssrfPolicy": map[string]any{
+				"dangerouslyAllowPrivateNetwork": false,
+			},
+		},
+	}
+
+	if hasFinding(result, "proxy.trusted_proxies_broad") || hasFinding(result, "proxy.trusted_proxy_mode_without_trusted_proxies") {
+		suggestedGateway := suggested["gateway"].(map[string]any)
+		suggestedGateway["trustedProxies"] = []string{"127.0.0.1/32"}
+	}
+	if hasFinding(result, "proxy.allow_users_missing") || hasFinding(result, "proxy.trusted_proxy_mode_without_allow_users") {
+		suggestedGateway := suggested["gateway"].(map[string]any)
+		suggestedGateway["allowUsers"] = []string{"replace-with-allowed-user@example.com"}
+	}
+	if hasFinding(result, "content.allow_unsafe_external_content") {
+		suggested["hooks"] = map[string]any{
+			"replace-hook-name": map[string]any{
+				"allowUnsafeExternalContent": false,
+			},
+		}
+	}
+
+	return FixPreview{
+		SourceConfig: filepath.Clean(loaded.Path),
+		Summary:      recommendedActions(result),
+		Suggested:    suggested,
+	}
+}
+
+func hasFinding(result types.ScanResult, id string) bool {
+	for _, finding := range result.Findings {
+		if finding.ID == id {
+			return true
+		}
+	}
+	return false
 }
 
 func recommendedActions(result types.ScanResult) []string {

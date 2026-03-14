@@ -1,23 +1,48 @@
 # openclaw-audit
 
-Local security audit for OpenClaw.
+OpenClaw security audit and hardening CLI for AI agents.
 
-`openclaw-audit` scans a local OpenClaw installation for exposed gateways, unsafe authentication, risky proxy settings, weak filesystem permissions, browser-control exposure, risky state-directory placement, and possible secret leakage.
+`openclaw-audit` helps operators secure OpenClaw deployments used for AI agents, LLM agent workflows, browser automation, and local agent infrastructure. It scans for exposed gateways, weak auth, risky proxy settings, browser SSRF posture, unsafe external-content bypasses, state-directory mistakes, and secret leakage, then generates hardening artifacts you can actually use.
 
 It runs locally and does not upload your configs, logs, or scan results.
 
-## Why
+## What This Project Is
 
-Recent OpenClaw security issues have shown that risk is not limited to public exposure. A deployment can still be unsafe because of weak local auth, dangerous Control UI settings, over-trusted proxies, browser SSRF posture, unsafe external-content bypasses, leaked tokens in logs or session transcripts, or sensitive state stored in synced folders or hidden behind symlinks.
+This repo is an `AI agent security` tool focused on `OpenClaw hardening`.
 
-`openclaw-audit` is designed to catch these problems early and give clear remediation steps.
+It is designed for:
+- OpenClaw operators
+- AI agent platform engineers
+- local LLM / agent security reviewers
+- browser automation users who need safer agent runtimes
+- teams evaluating OpenClaw exposure before putting it behind remote access
 
-## Scope
+If someone searches for any of these, this repo should be relevant:
+- OpenClaw security
+- OpenClaw hardening
+- AI agent security
+- LLM agent security
+- browser agent security
+- prompt-injection blast radius
+- local agent runtime hardening
+- reverse proxy for OpenClaw
 
-`v0.1` focuses on local single-node OpenClaw audits and guardrail generation.
+## Why It Matters
 
-Included:
-- configuration audit
+Recent OpenClaw issues have shown that risk is not limited to public exposure. A deployment can still be unsafe because of:
+- weak local auth
+- dangerous Control UI settings
+- over-trusted proxies
+- browser SSRF posture
+- unsafe external-content bypasses
+- leaked tokens in logs or session transcripts
+- sensitive state stored in synced folders or hidden behind symlinks
+
+`openclaw-audit` is built to catch those problems early and turn them into concrete remediation steps.
+
+## What It Does
+
+Included today:
 - gateway exposure classification
 - authentication checks
 - Control UI security checks
@@ -25,17 +50,20 @@ Included:
 - browser SSRF, remote CDP, and relay checks
 - unsafe external-content bypass checks
 - filesystem permission checks
-- state_dir, credentials path, symlink, and synced-folder checks
-- secrets leakage scan across config, sessions, and logs
+- `fs.state_dir`, credentials path, symlink, and synced-folder checks
+- secret leakage scan across config, sessions, and logs
 - tool blast-radius checks
 - plugin trust checks
 - version baseline check
 - terminal output
 - JSON output
 - optional HTML report
-- `harden` command that generates a Caddy reverse proxy config and a Markdown hardening guide
+- `harden` command that generates:
+  - `Caddyfile`
+  - `HARDENING.md`
+  - `openclaw.fix-preview.json`
 
-Not included:
+Not included yet:
 - automatic remediation
 - continuous monitoring
 - cloud dashboard
@@ -47,7 +75,7 @@ Not included:
 ### Build from source
 
 ```bash
-git clone https://github.com/yourname/openclaw-audit.git
+git clone https://github.com/liu971227-sys/openclaw-audit.git
 cd openclaw-audit
 go build ./cmd/openclaw-audit
 ```
@@ -99,6 +127,7 @@ openclaw-audit harden --config ~/.openclaw/openclaw.json --site openclaw.example
 This creates:
 - `dist/hardening/Caddyfile`
 - `dist/hardening/HARDENING.md`
+- `dist/hardening/openclaw.fix-preview.json`
 
 ## Example Output
 
