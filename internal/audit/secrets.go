@@ -14,13 +14,12 @@ import (
 )
 
 const (
-	maxScannedFileCount = 24
+	maxScannedFileCount = 48
 	maxScannedFileSize  = 8 << 20
 )
 
 func RunSecretsAudit(loaded config.LoadedConfig, logPaths []string) []types.Finding {
-	candidateFiles := []string{loaded.Path}
-	candidateFiles = append(candidateFiles, gatherLogFiles(logPaths)...)
+	candidateFiles := gatherSensitiveFiles(loaded.Path, logPaths)
 
 	findings := make([]types.Finding, 0)
 	patterns := rules.DefaultSecretPatterns()
@@ -65,11 +64,11 @@ func RunSecretsAudit(loaded config.LoadedConfig, logPaths []string) []types.Find
 				"Potential secret material found",
 				"secrets",
 				severity,
-				"A likely secret pattern was detected in an OpenClaw config or log file.",
+				"A likely secret pattern was detected in an OpenClaw config, session transcript, or log file.",
 				[]string{fmt.Sprintf("%s matched %s %d time(s)", displayPath(path), pattern.Label, realMatchCount)},
 				[]string{
 					"Rotate any real secret value found in the file.",
-					"Remove or redact historical logs that contain credentials.",
+					"Remove or redact historical logs or session transcripts that contain credentials.",
 					"Prefer environment variables or a dedicated secret store instead of inline secrets.",
 				},
 			))
@@ -98,6 +97,30 @@ func shouldIgnoreSecretMatch(match []byte) bool {
 	return false
 }
 
+func gatherSensitiveFiles(configPath string, logPaths []string) []string {
+	candidates := []string{configPath}
+	baseDir := filepath.Dir(configPath)
+	candidates = append(candidates,
+		filepath.Join(baseDir, "auth-profiles.json"),
+		filepath.Join(baseDir, "secrets.json"),
+		filepath.Join(baseDir, "openclaw.json"),
+	)
+
+	sessionGlobs := []string{
+		filepath.Join(baseDir, "agents", "*", "sessions", "*.jsonl"),
+		filepath.Join(baseDir, "agents", "*", "sessions", "*.log"),
+	}
+	for _, pattern := range sessionGlobs {
+		matches, err := filepath.Glob(pattern)
+		if err == nil {
+			candidates = append(candidates, matches...)
+		}
+	}
+
+	candidates = append(candidates, gatherLogFiles(logPaths)...)
+	return uniqueStrings(candidates)
+}
+
 func gatherLogFiles(logPaths []string) []string {
 	files := make([]string, 0)
 	for _, logPath := range logPaths {
@@ -116,4 +139,21 @@ func gatherLogFiles(logPaths []string) []string {
 		}
 	}
 	return files
+}
+
+func uniqueStrings(items []string) []string {
+	seen := make(map[string]struct{}, len(items))
+	unique := make([]string, 0, len(items))
+	for _, item := range items {
+		if item == "" {
+			continue
+		}
+		cleaned := filepath.Clean(item)
+		if _, ok := seen[cleaned]; ok {
+			continue
+		}
+		seen[cleaned] = struct{}{}
+		unique = append(unique, cleaned)
+	}
+	return unique
 }

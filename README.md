@@ -2,13 +2,13 @@
 
 Local security audit for OpenClaw.
 
-`openclaw-audit` scans a local OpenClaw installation for exposed gateways, unsafe authentication, risky proxy settings, weak filesystem permissions, and possible secret leakage.
+`openclaw-audit` scans a local OpenClaw installation for exposed gateways, unsafe authentication, risky proxy settings, weak filesystem permissions, browser-control exposure, and possible secret leakage.
 
 It runs locally and does not upload your configs, logs, or scan results.
 
 ## Why
 
-Recent OpenClaw security issues have shown that risk is not limited to public exposure. A deployment can still be unsafe because of weak local auth, dangerous Control UI settings, over-trusted proxies, leaked tokens in logs, or overly broad tool permissions.
+Recent OpenClaw security issues have shown that risk is not limited to public exposure. A deployment can still be unsafe because of weak local auth, dangerous Control UI settings, over-trusted proxies, browser SSRF posture, unsafe external-content bypasses, leaked tokens in logs or session transcripts, or overly broad tool permissions.
 
 `openclaw-audit` is designed to catch these problems early and give clear remediation steps.
 
@@ -21,9 +21,11 @@ Included:
 - gateway exposure classification
 - authentication checks
 - Control UI security checks
-- trusted proxy checks
+- trusted proxy and trusted-proxy auth checks
+- browser SSRF, remote CDP, and relay checks
+- unsafe external-content bypass checks
 - filesystem permission checks
-- secrets leakage scan
+- secrets leakage scan across config, sessions, and logs
 - tool blast-radius checks
 - plugin trust checks
 - version baseline check
@@ -113,7 +115,7 @@ If a secret is detected, rotate it immediately.
 
 ## Exit Codes
 
-- `0`: scan completed with no findings
+- `0`: scan completed with no actionable findings
 - `1`: scan completed with findings
 - `2`: scan failed
 

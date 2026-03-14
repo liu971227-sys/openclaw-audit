@@ -4,6 +4,8 @@ gateway:
   auth:
     enabled: false
     password: short
+    mode: trusted-proxy
+    allowTailscale: true
   controlUi:
     allowInsecureAuth: true
     dangerouslyDisableDeviceAuth: true
@@ -14,3 +16,12 @@ tools:
   sandbox: disabled
 plugins:
   - name: community-risky-plugin
+browser:
+  enabled: true
+  evaluateEnabled: true
+  ssrfPolicy:
+    dangerouslyAllowPrivateNetwork: true
+  cdpUrl: wss://browser.example.com/devtools/browser
+hooks:
+  gmail:
+    allowUnsafeExternalContent: true
